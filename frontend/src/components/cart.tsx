@@ -1,13 +1,15 @@
-// components/cart.tsx (update checkout handler)
 import { Button } from "@/components/ui/button"
-import {Input} from "@/components/ui/input.tsx"
+import { Input } from "@/components/ui/input"
 import { useCart } from "../hooks/use-cart"
 import { createOrder } from "../api/products"
 import { useQueryClient } from "@tanstack/react-query"
+import { useToast } from "@/hooks/use-toast"
+import { Toaster } from "@/components/ui/toaster"
 
 export function Cart() {
-    const { items, clearCart , updateQuantity, removeItem} = useCart()
+    const { items, clearCart, updateQuantity, removeItem } = useCart()
     const queryClient = useQueryClient()
+    const { toast } = useToast()
     const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
 
     const handleCheckout = async () => {
@@ -17,15 +19,21 @@ export function Cart() {
                 quantity: item.quantity
             }))
 
-            await createOrder(orderItems)
+            const response = await createOrder(orderItems)
             clearCart()
 
-            // Refresh products data after successful checkout
             await queryClient.invalidateQueries({ queryKey: ['products'] })
 
-            alert('Order placed successfully!')
+            toast({
+                title: "Order Successful!",
+                description: `Order ID: ${response.order_id}\nTotal: $${response.total_amount.toFixed(2)}`,
+            })
         } catch (error) {
-            alert('Error placing order')
+            toast({
+                title: "Order Failed",
+                description: "Could not process your order",
+                variant: "destructive"
+            })
         }
     }
 
@@ -44,37 +52,25 @@ export function Cart() {
                             min="1"
                             value={item.quantity.toString()}
                             onChange={(e) => {
-                                console.log('Raw input value:', e.target.value); // Debugging
-                                const value = parseInt(e.target.value);
-
-                                // Handle empty input case first
+                                const value = parseInt(e.target.value)
                                 if (e.target.value === "") {
-                                    console.log('Empty input detected, setting to 1');
-                                    updateQuantity(item.product_id, 1);
-                                    return;
+                                    updateQuantity(item.product_id, 1)
+                                    return
                                 }
-
                                 if (!isNaN(value) && value >= 1) {
-                                    console.log('Valid quantity update:', value);
-                                    updateQuantity(item.product_id, value);
-                                } else {
-                                    console.log('Invalid value, ignoring:', value);
+                                    updateQuantity(item.product_id, value)
                                 }
                             }}
                             onBlur={(e) => {
                                 if (e.target.value === "" || parseInt(e.target.value) < 1) {
-                                    console.log('Blur with invalid value, resetting to 1');
-                                    updateQuantity(item.product_id, 1);
+                                    updateQuantity(item.product_id, 1)
                                 }
                             }}
                             className="w-16 px-2 border rounded ml-6"
                         />
                         <Button
                             variant="destructive"
-                            onClick={() => {
-                                console.log('Removing item:', item.product_id);
-                                removeItem(item.product_id);
-                            }}
+                            onClick={() => removeItem(item.product_id)}
                         >
                             Remove
                         </Button>
@@ -87,6 +83,7 @@ export function Cart() {
             <Button onClick={handleCheckout} className="w-full">
                 Checkout
             </Button>
+            <Toaster />
         </div>
     )
 }

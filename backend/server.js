@@ -16,7 +16,7 @@ app.use(bodyParser.json());
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: '', // Blank password by default in Laragon
+    password: '',
     database: 'shopping_cart',
     port: 3306
 });
@@ -33,7 +33,7 @@ db.connect(err => {
 app.get('/api/products', (req, res) => {
     db.query('SELECT * FROM Product', (err, results) => {
         if (err) {
-            return res.status(500).json({ error: err.message });
+            return res.status(500).json({error: err.message});
         }
         res.json(results);
     });
@@ -48,24 +48,24 @@ app.get('/api/products/:id', (req, res) => {
         [productId],
         (err, results) => {
             if (err) {
-                return res.status(500).json({ error: err.message });
+                return res.status(500).json({error: err.message});
             }
             if (results.length === 0) {
-                return res.status(404).json({ error: 'Product not found' });
+                return res.status(404).json({error: 'Product not found'});
             }
             res.json(results[0]);
         }
     );
 });
 
+// Get all Orders and formatting
 app.get('/api/orders', (req, res) => {
     const query = `
-        SELECT
-            so.order_id,
-            CAST(so.total_amount AS DECIMAL(10,2)) as total_amount,
-            so.created_at,
-            GROUP_CONCAT(CONCAT(soi.quantity, 'x ', p.name) SEPARATOR ', ') AS items,
-            SUM(soi.quantity) AS total_items
+        SELECT so.order_id,
+               CAST(so.total_amount AS DECIMAL(10, 2))                         as total_amount,
+               so.created_at,
+               GROUP_CONCAT(CONCAT(soi.quantity, 'x ', p.name) SEPARATOR ', ') AS items,
+               SUM(soi.quantity)                                               AS total_items
         FROM SalesOrder so
                  JOIN SalesOrderItem soi ON so.order_id = soi.order_id
                  JOIN Product p ON soi.product_id = p.product_id
@@ -76,9 +76,9 @@ app.get('/api/orders', (req, res) => {
     db.query(query, (err, results) => {
         if (err) {
             console.error('Database error:', err); // Add logging
-            return res.status(500).json({ error: err.message });
+            return res.status(500).json({error: err.message});
         }
-        console.log('Orders results:', results); // Debug logging
+        console.log('Orders results:', results);
         const formattedResults = results.map(order => ({
             ...order,
             items: order.items.split(', ').map(item => {
@@ -95,13 +95,13 @@ app.get('/api/orders', (req, res) => {
 
 // Create new order
 app.post('/api/orders', (req, res) => {
-    const { items } = req.body;
+    const {items} = req.body;
     if (!items || !Array.isArray(items)) {
-        return res.status(400).json({ error: 'Invalid request format' });
+        return res.status(400).json({error: 'Invalid request format'});
     }
 
     db.beginTransaction(err => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return res.status(500).json({error: err.message});
 
         // Calculate total amount
         let total = 0;
@@ -143,7 +143,8 @@ function createOrder(total, productUpdates, res) {
             const values = productUpdates.flatMap(p => [orderId, p.product_id, p.quantity]);
 
             db.query(
-                `INSERT INTO SalesOrderItem (order_id, product_id, quantity) VALUES ${placeholders}`,
+                `INSERT INTO SalesOrderItem (order_id, product_id, quantity)
+                 VALUES ${placeholders}`,
                 values,
                 (err) => {
                     if (err) return rollback(res, err);
@@ -175,7 +176,7 @@ function createOrder(total, productUpdates, res) {
 
 function rollback(res, err) {
     db.rollback(() => {
-        res.status(500).json({ error: err.message || err });
+        res.status(500).json({error: err.message || err});
     });
 }
 

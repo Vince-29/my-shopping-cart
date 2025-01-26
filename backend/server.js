@@ -6,7 +6,10 @@ const cors = require('cors');
 const app = express();
 const port = 3000;
 
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:5173'
+}));
+
 app.use(bodyParser.json());
 
 // Database connection
@@ -55,44 +58,38 @@ app.get('/api/products/:id', (req, res) => {
     );
 });
 
-// Gets all sales orders
 app.get('/api/orders', (req, res) => {
     const query = `
-        SELECT 
+        SELECT
             so.order_id,
-            so.total_amount,
+            CAST(so.total_amount AS DECIMAL(10,2)) as total_amount,
             so.created_at,
-            soi.product_id,
-            soi.quantity,
-            p.name AS product_name,
-            p.price AS unit_price
+            GROUP_CONCAT(CONCAT(soi.quantity, 'x ', p.name) SEPARATOR ', ') AS items,
+            SUM(soi.quantity) AS total_items
         FROM SalesOrder so
-        JOIN SalesOrderItem soi ON so.order_id = soi.order_id
-        JOIN Product p ON soi.product_id = p.product_id
+                 JOIN SalesOrderItem soi ON so.order_id = soi.order_id
+                 JOIN Product p ON soi.product_id = p.product_id
+        GROUP BY so.order_id
+        ORDER BY so.created_at DESC
     `;
 
     db.query(query, (err, results) => {
-        // ... error handling
-        // Group items by order
-        const orders = results.reduce((acc, row) => {
-            if (!acc[row.order_id]) {
-                acc[row.order_id] = {
-                    order_id: row.order_id,
-                    total_amount: row.total_amount,
-                    created_at: row.created_at,
-                    items: []
+        if (err) {
+            console.error('Database error:', err); // Add logging
+            return res.status(500).json({ error: err.message });
+        }
+        console.log('Orders results:', results); // Debug logging
+        const formattedResults = results.map(order => ({
+            ...order,
+            items: order.items.split(', ').map(item => {
+                const [quantity, ...nameParts] = item.split('x ');
+                return {
+                    quantity: parseInt(quantity),
+                    name: nameParts.join('x ')
                 };
-            }
-            acc[row.order_id].items.push({
-                product_id: row.product_id,
-                product_name: row.product_name,
-                unit_price: row.unit_price,
-                quantity: row.quantity
-            });
-            return acc;
-        }, {});
-
-        res.json(Object.values(orders));
+            })
+        }));
+        res.json(formattedResults);
     });
 });
 

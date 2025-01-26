@@ -5,6 +5,7 @@ import CartPage from './pages/CartPage'
 import ProductDetail from './pages/ProductDetail'
 import { Toaster } from "@/components/ui/toaster"
 import { Navbar } from './components/navbar'
+import OrdersPage from './pages/Orders'
 
 function App() {
     return (
@@ -15,6 +16,7 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/products/:id" element={<ProductDetail />} />
+                    <Route path="/orders" element={<OrdersPage />} />
                 </Routes>
             </main>
             <Toaster />

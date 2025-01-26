@@ -1,4 +1,3 @@
-// hooks/use-cart.ts
 import { create } from 'zustand'
 
 type CartItem = {

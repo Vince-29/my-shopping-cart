@@ -14,6 +14,7 @@ export default function Home() {
 
     if (isLoading) return <div>Loading...</div>
 
+    // @ts-ignore
     return (
         <div className="p-8 grid grid-cols-3 gap-4">
             {products?.map(product => (

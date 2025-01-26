@@ -11,11 +11,15 @@ export function ProductCard({ product, addToCart }: { product: any, addToCart: (
                 <CardDescription>
                     ${product.price}
                     <Badge
-                        variant="outline"
+                        variant={product.stock_quantity === 0 ? "destructive" : "outline"}
                         className="ml-2"
                         data-testid="stock-badge"
                     >
-                        Stock: {product.stock_quantity}
+                        {product.stock_quantity === 0 ? (
+                            "Out of Stock"
+                        ) : (
+                            `Stock: ${product.stock_quantity}`
+                        )}
                     </Badge>
                 </CardDescription>
             </CardHeader>
@@ -33,3 +37,4 @@ export function ProductCard({ product, addToCart }: { product: any, addToCart: (
         </Card>
     )
 }
+
